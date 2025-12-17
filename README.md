@@ -1,66 +1,154 @@
-# PARANOID
+# 🟦 PARANOID — BLUE
 
-> Context-aware Nmap reconnaissance framework with traffic intelligence and Active Directory awareness.
+> **Context-aware Nmap reconnaissance framework with traffic intelligence and Active Directory awareness**
 
-PARANOID es una herramienta de **reconocimiento de red avanzada**, diseñada como un wrapper inteligente sobre Nmap que combina:
+PARANOID es una herramienta de **reconocimiento de red avanzada**, diseñada como un wrapper inteligente sobre **Nmap**, que combina análisis activo y pasivo para entregar **contexto real**, reducir ruido y mantener **control humano total** sobre cada acción.
 
-- Escaneo de puertos y servicios
-- Análisis pasivo de tráfico
-- Detección automática de hostnames
-- Conciencia de entornos Active Directory
-- Control explícito del usuario sobre objetivo e interfaz
+PARANOID **no es un exploit framework**.
+No ejecuta ataques.
+No toma decisiones ofensivas por el usuario.
 
-🚫 No es un exploit framework  
-🚫 No ejecuta ataques  
-🚫 No toma decisiones ofensivas  
-
-PARANOID **observa, correlaciona y contextualiza**.
-
-
-
-
-
-# 🛠️ Instalación de PARANOID
-
-Este documento explica cómo instalar y preparar **PARANOID** en sistemas Linux.
-
-PARANOID es una herramienta de reconocimiento de red que **requiere permisos elevados**
-para funcionar correctamente, debido a su uso de Nmap avanzado, captura pasiva de tráfico
-y gestión opcional del archivo `/etc/hosts`.
+> PARANOID **observa, correlaciona y contextualiza**.
 
 ---
 
-## 🖥️ Sistemas soportados
+## ✨ Características principales
 
-- Linux (probado en):
-  - Kali Linux
-  - Distribuciones basadas en Debian
-- Arquitectura: `x86_64`
-- Python **3.9 o superior**
+* Wrapper avanzado para Nmap
+* Modos de escaneo integrados:
 
-> ⚠️ No se recomienda ejecutar PARANOID en contenedores Docker o entornos virtuales
-> altamente restringidos, ya que puede limitar el acceso a interfaces de red.
+  * Quick Scan
+  * Full Scan
+  * Service Scan
+  * Stealth Scan
+* Análisis pasivo de tráfico en tiempo real:
+
+  * PPS (Packets Per Second)
+  * RTT estimado
+  * Retransmisiones
+  * Nivel de ruido
+  * Indicadores de posible firewall
+* Detección automática de hostnames:
+
+  * Certificados TLS (CN / SAN)
+  * HTTP redirects
+* **Conciencia de Active Directory**:
+
+  * Identificación de Domain Controllers
+  * Detección de dominio raíz AD
+* Gestión opcional de `/etc/hosts`:
+
+  * Hostnames confirmados
+  * Hostnames inferidos
+* Selección manual de interfaz de red:
+
+  * `eth0`, `wlan0`, `tun0`, etc.
+* Resultados organizados por objetivo
 
 ---
 
-## 📦 Dependencias del sistema
+## 🧠 Filosofía del proyecto
 
-Antes de instalar PARANOID, asegúrate de tener las siguientes herramientas instaladas.
+PARANOID sigue un principio simple:
 
-### 🔹 Dependencias requeridas
-- `python3`
-- `pip3`
-- `nmap`
+> **Más contexto, menos ruido.**
+> **Más control humano, menos automatización ciega.**
 
-### 🔹 Dependencias recomendadas
-- `tcpdump` → captura pasiva de tráfico
-- `iproute2` → gestión de interfaces
-- `net-tools` → utilidades de red clásicas
+La herramienta entrega información **clara, correlacionada y accionable**, sin asumir intención ofensiva ni ejecutar acciones destructivas.
 
+---
 
+## 🖥️ Requisitos
 
-## 📚 Documentation
+* Linux (probado en Kali Linux y Debian-based)
+* Arquitectura x86_64
+* Python 3.9 o superior
+* Nmap instalado
+* Permisos de root (requeridos para):
 
-- 📦 [Installation Guide](INSTALL.md)
-- ⚠️ [Legal Disclaimer](DISCLAIMER.md)
-- 📄 [License](LICENSE)
+  * Escaneos SYN
+  * Captura pasiva de tráfico
+  * Acceso a interfaces de red
+  * Modificación opcional de `/etc/hosts`
+
+> ⚠️ No se recomienda el uso de PARANOID en contenedores Docker o entornos virtuales altamente restringidos.
+
+---
+
+## 🚀 Instalación rápida
+
+```bash
+git clone https://github.com/lLVXX/PARANOID.git
+cd PARANOID
+pip3 install -r requirements.txt
+sudo python3 r-recon.py
+```
+
+📘 Guía completa de instalación:
+👉 [INSTALL.md](INSTALL.md)
+
+---
+
+## 🧪 Flujo de uso básico
+
+1. Seleccionar interfaz de red
+2. Definir target (IP o red)
+3. Elegir tipo de escaneo
+4. Analizar:
+
+   * Puertos
+   * Hostnames
+   * Tráfico
+   * Contexto del objetivo
+
+Los resultados se almacenan automáticamente en:
+
+```
+results/<target>/
+```
+
+---
+
+## 📚 Documentación
+
+* 📦 [Guía de instalación](INSTALL.md)
+* ⚠️ [Disclaimer legal](DISCLAIMER.md)
+* 📄 [Licencia](LICENSE)
+
+---
+
+## ⚠️ Advertencia legal
+
+PARANOID está destinado **exclusivamente** a:
+
+* Auditorías autorizadas
+* Laboratorios
+* Investigación
+* Aprendizaje
+
+El uso de esta herramienta contra sistemas sin autorización explícita **puede ser ilegal**.
+
+Consulta el archivo:
+👉 [DISCLAIMER.md](DISCLAIMER.md)
+
+---
+
+## 📄 Licencia
+
+Este proyecto se distribuye bajo la licencia **MIT**.
+
+Consulta:
+👉 [LICENSE](LICENSE)
+
+---
+
+## 🟦 Estado del proyecto
+
+* Versión actual: **PARANOID 2.0 — BLUE**
+* Estado: estable / en evolución
+* Enfoque: madurez, claridad y cumplimiento legal
+
+---
+
+> **PARANOID no ataca.**
+> **PARANOID entiende.**
