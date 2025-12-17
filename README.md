@@ -1,3 +1,25 @@
+# PARANOID
+
+> Context-aware Nmap reconnaissance framework with traffic intelligence and Active Directory awareness.
+
+PARANOID es una herramienta de **reconocimiento de red avanzada**, diseñada como un wrapper inteligente sobre Nmap que combina:
+
+- Escaneo de puertos y servicios
+- Análisis pasivo de tráfico
+- Detección automática de hostnames
+- Conciencia de entornos Active Directory
+- Control explícito del usuario sobre objetivo e interfaz
+
+🚫 No es un exploit framework  
+🚫 No ejecuta ataques  
+🚫 No toma decisiones ofensivas  
+
+PARANOID **observa, correlaciona y contextualiza**.
+
+
+
+
+
 # 🛠️ Instalación de PARANOID
 
 Este documento explica cómo instalar y preparar **PARANOID** en sistemas Linux.
@@ -35,16 +57,10 @@ Antes de instalar PARANOID, asegúrate de tener las siguientes herramientas inst
 - `iproute2` → gestión de interfaces
 - `net-tools` → utilidades de red clásicas
 
-### Instalación en Kali / Debian
-
-```bash
-sudo apt update
-sudo apt install -y \
-  python3 \
-  python3-pip \
-  nmap \
-  tcpdump \
-  iproute2 \
-  net-tools
 
 
+## 📚 Documentation
+
+- 📦 [Installation Guide](INSTALL.md)
+- ⚠️ [Legal Disclaimer](DISCLAIMER.md)
+- 📄 [License](LICENSE)
