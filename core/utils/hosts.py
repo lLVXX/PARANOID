@@ -1,3 +1,5 @@
+# core/utils/hosts.py
+
 import os
 import re
 
@@ -19,7 +21,6 @@ def add_to_hosts(ip, domains):
     if isinstance(domains, str):
         domains = [domains]
 
-    # Limpiar duplicados y ordenar
     domains = sorted(set(domains))
 
     # Validar IP
@@ -33,17 +34,12 @@ def add_to_hosts(ip, domains):
     print(f"    {entry}")
 
     try:
-        existing_lines = []
-
         if os.path.exists(HOSTS_FILE):
             with open(HOSTS_FILE, "r") as f:
-                existing_lines = f.readlines()
-
-            # Evitar duplicados exactos
-            for line in existing_lines:
-                if line.strip() == entry:
-                    print("[i] La entrada ya existe")
-                    return True
+                for line in f:
+                    if line.strip() == entry:
+                        print("[i] La entrada ya existe")
+                        return True
 
         with open(HOSTS_FILE, "a") as f:
             f.write(entry + "\n")
@@ -78,3 +74,4 @@ def list_hosts_entries():
 
     except Exception as e:
         print(f"[!] Error leyendo /etc/hosts: {e}")
+

@@ -1,4 +1,4 @@
-# core/packet_sniffer.py
+# core/engine/packet_sniffer.py
 
 import time
 import threading
@@ -9,8 +9,15 @@ from scapy.all import sniff, TCP, UDP, ICMP, ARP, IP
 
 
 class PacketSniffer:
-    def __init__(self, target=None, iface=None):
+    """
+    Packet sniffer REAL usado por Nmap y FFUF.
+    - Nmap: análisis de puertos / ruido / firewall
+    - FFUF: análisis de volumen + contexto HTTP
+    """
+
+    def __init__(self, target=None, iface=None, mode="generic"):
         self.iface = iface
+        self.mode = mode
         self.running = False
         self.thread = None
 
@@ -19,6 +26,9 @@ class PacketSniffer:
 
         self.target = None
         self.network = None
+
+        # FFUF
+        self.found_routes = []
 
         if target:
             try:
@@ -30,7 +40,7 @@ class PacketSniffer:
                 raise ValueError(f"Target inválido: {target}")
 
         # ------------------------------
-        # CONTADORES CRUDOS
+        # CONTADORES
         # ------------------------------
         self.stats = {
             "total": 0,
@@ -39,19 +49,16 @@ class PacketSniffer:
             "icmp": 0,
             "arp": 0,
             "other": 0,
-
             "syn": 0,
             "synack": 0,
             "rst": 0,
             "fin": 0,
-
             "tx_pkts": 0,
             "rx_pkts": 0,
             "tx_bytes": 0,
             "rx_bytes": 0,
         }
 
-        # Métricas avanzadas
         self.dst_ports = defaultdict(int)
         self.seen_seq = set()
         self.retransmissions = 0
@@ -59,6 +66,8 @@ class PacketSniffer:
         self.syn_timestamps = {}
         self.rtt_samples = []
 
+    # --------------------------------------------------
+    # SCOPE
     # --------------------------------------------------
 
     def _packet_in_scope(self, pkt):
@@ -81,6 +90,8 @@ class PacketSniffer:
 
         return True
 
+    # --------------------------------------------------
+    # PROCESAMIENTO
     # --------------------------------------------------
 
     def _process_packet(self, pkt):
@@ -122,8 +133,9 @@ class PacketSniffer:
                 self.stats["synack"] += 1
                 key = (tcp.dport, tcp.sport)
                 if key in self.syn_timestamps:
-                    rtt = time.time() - self.syn_timestamps[key]
-                    self.rtt_samples.append(rtt)
+                    self.rtt_samples.append(
+                        time.time() - self.syn_timestamps[key]
+                    )
 
             elif flags & 0x04:
                 self.stats["rst"] += 1
@@ -145,6 +157,8 @@ class PacketSniffer:
             self.stats["other"] += 1
 
     # --------------------------------------------------
+    # SNIFF LOOP
+    # --------------------------------------------------
 
     def _sniff(self):
         sniff(
@@ -162,6 +176,8 @@ class PacketSniffer:
             return f"net {self.network}"
         return None
 
+    # --------------------------------------------------
+    # CONTROL
     # --------------------------------------------------
 
     def start(self):
@@ -184,10 +200,49 @@ class PacketSniffer:
         return self._finalize()
 
     # --------------------------------------------------
+    # FINALIZACIÓN
+    # --------------------------------------------------
 
     @property
     def duration(self):
         return max((self.end_time or time.time()) - self.start_time, 0.001)
+
+    def add_routes(self, routes):
+        self.found_routes = routes or []
+
+    def final_stats(self) -> dict:
+        """
+        CONTRATO ÚNICO PARA TELEMETRÍA
+        (usado por TelemetrySession / Analyzer / Renderer)
+        """
+        data = self._finalize()
+
+        return {
+            "duration": data["duration"],
+            "total_packets": data["total"],
+            "packets": data["total"],
+            "pps": data["pps"],
+            "tx": (data["tx_pkts"], data["tx_bytes"]),
+            "rx": (data["rx_pkts"], data["rx_bytes"]),
+            "protocols": {
+                "tcp": data["tcp"],
+                "udp": data["udp"],
+                "icmp": data["icmp"],
+            },
+            "tcp_flags": {
+                "syn": data["syn"],
+                "synack": data["synack"],
+                "rst": data["rst"],
+                "fin": data["fin"],
+            },
+            "top_ports": data.get("top_ports", []),
+            "noise": data["noise"],
+            "firewall": data["firewall"] == "POSIBLE",
+            "rtt_avg": data["avg_rtt"] * 1000,
+            "retransmissions": data["retransmissions"],
+            "silences": data["silence"],
+            "routes": data.get("routes", []),
+        }
 
     def _finalize(self):
         syn = self.stats["syn"]
@@ -197,25 +252,23 @@ class PacketSniffer:
         ratio = (synack / syn * 100) if syn > 0 else 0.0
         pps = self.stats["total"] / self.duration
 
-        if pps < 30:
-            noise = "SIGILOSO"
-        elif pps < 80:
-            noise = "BAJO"
-        elif pps < 150:
-            noise = "MEDIO"
-        else:
-            noise = "ALTO"
+        noise = (
+            "SIGILOSO" if pps < 30 else
+            "BAJO" if pps < 80 else
+            "MEDIO" if pps < 150 else
+            "ALTO"
+        )
 
         avg_rtt = (
             sum(self.rtt_samples) / len(self.rtt_samples)
             if self.rtt_samples else 0.0
         )
 
-        firewall = "NO APLICABLE"
-        if syn > 0:
-            firewall = "POSIBLE" if silence / syn > 0.5 else "NO EVIDENTE"
+        firewall = (
+            "POSIBLE" if syn and silence / syn > 0.5 else "NO EVIDENTE"
+        )
 
-        return {
+        data = {
             **self.stats,
             "duration": self.duration,
             "pps": pps,
@@ -225,46 +278,16 @@ class PacketSniffer:
             "firewall": firewall,
             "retransmissions": self.retransmissions,
             "avg_rtt": avg_rtt,
-            "top_ports": sorted(
+        }
+
+        if self.mode != "ffuf":
+            data["top_ports"] = sorted(
                 self.dst_ports.items(),
                 key=lambda x: x[1],
                 reverse=True
             )[:5]
-        }
 
-    # --------------------------------------------------
+        if self.found_routes:
+            data["routes"] = self.found_routes
 
-    @staticmethod
-    def render(s):
-        if not s or s.get("total", 0) == 0:
-            return "[!] No se capturó tráfico durante el escaneo"
-
-        return f"""
-┌────────────────────────────────────────────┐
-│           PACKET INTELLIGENCE              │
-├────────────────────────────────────────────┤
-│ Duración:        {s['duration']:>6.2f} s
-│ Paquetes:        {s['total']:>6}
-│ PPS:             {s['pps']:>6.1f}
-├────────────────────────────────────────────┤
-│ TX: {s['tx_pkts']:>5} pkts | {s['tx_bytes']:>7} bytes
-│ RX: {s['rx_pkts']:>5} pkts | {s['rx_bytes']:>7} bytes
-├────────────────────────────────────────────┤
-│ TCP: {s['tcp']:>5} | UDP: {s['udp']:>3} | ICMP: {s['icmp']:>3}
-├────────────────────────────────────────────┤
-│ SYN: {s['syn']:>5} | SYN/ACK: {s['synack']:>5}
-│ RST: {s['rst']:>5} | FIN:     {s['fin']:>5}
-│ Ratio respuesta: {s['response_ratio']:>5.1f}%
-├────────────────────────────────────────────┤
-│ RTT promedio:    {s['avg_rtt']*1000:>5.1f} ms
-│ Retransmisiones: {s['retransmissions']:>5}
-│ Silencios:       {s['silence']:>5}
-│ Firewall:      {s['firewall']:^12}
-├────────────────────────────────────────────┤
-│ Nivel de ruido: {s['noise']:^12}
-└────────────────────────────────────────────┘
-""" + (
-            "\nTop puertos destino:\n" +
-            "\n".join(f"  - {p}/tcp → {c} pkts" for p, c in s["top_ports"])
-            if s.get("top_ports") else ""
-        )
+        return data
